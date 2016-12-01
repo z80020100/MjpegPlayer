@@ -6,6 +6,7 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 
 #include <libavcodec/avcodec.h>
@@ -17,26 +18,70 @@
 #include <android/log.h>
 #define LOG_TAG "mjpeg_player.c"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO , LOG_TAG, __VA_ARGS__)
+#define LOGW(...) __android_log_print(ANDROID_LOG_WARN , LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 #define RGB565_RED   (31 << 11)
 #define RGB565_GREEN (63 << 5)
 #define RGB565_BLUE  (31 << 0)
 
+jclass MainActivity;
+jobject mMainActivity;
+
+char *y_data;
+char *uv_data;
+
+int fill_native_window(__uint16_t rgb565_value){
+
+}
+
+void release_native_window(){
+
+}
+
+
 // Testing for surface operation from native C code
-JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_testSurface(JNIEnv *env, jobject activity, jobject surface){
+JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_testSurface(JNIEnv *env, jobject activity, jobject surface, jbyteArray buffer){
 
-    ANativeWindow_Buffer nwBuffer;
-
-    LOGI("ANativeWindow_fromSurface");
-    ANativeWindow *mANativeWindow = ANativeWindow_fromSurface(env, surface);
-    if (mANativeWindow == NULL) {
-        LOGE("ANativeWindow_fromSurface error");
+    char* classname = "com/example/v002060/mjpegplayer/MainActivity";
+    jclass dpclazz = (*env)->FindClass(env,classname);
+    if(dpclazz == 0){
+        LOGE("Class: %s not found", classname);
+        return;
+    }
+    jmethodID methodID = (*env)->GetMethodID(env,dpclazz,"decodeCallback","([B)V");
+    if(methodID == 0){
+        LOGE("Method: decodeCallback not found");
         return;
     }
 
-    LOGI("Width = %d, Height = %d", ANativeWindow_getWidth (mANativeWindow), ANativeWindow_getHeight (mANativeWindow));
+    //jbyte a[] = {1,2,3,4,5,6}; // (equal to char a[]?)
+    int length = 6;
+    //unsigned char *a = malloc(length);
+    unsigned char *a = (unsigned char *) (*env)->GetPrimitiveArrayCritical(env, buffer, 0);
+    a[0] = 1;
+    a[3] = 4;
+    //jbyteArray ret = (*env)->NewByteArray(env, length);
+    //(*env)->SetByteArrayRegion (env, ret, 0, length, a);
+    //(*env)->CallVoidMethod(env, activity, methodID, ret);
+    (*env)->ReleasePrimitiveArrayCritical(env, buffer, a, 0);
+
+    ANativeWindow       *mANativeWindow;
+    ANativeWindow_Buffer nwBuffer;
+    int width, height;
+
+    // initialize the native windows
+    LOGI("ANativeWindow_fromSurface");
+    mANativeWindow = (ANativeWindow*)ANativeWindow_fromSurface(env, surface);
+    if (mANativeWindow == NULL){
+        LOGE("Error: ANativeWindow_fromSurface()");
+        return;
+    }
+
+    width = ANativeWindow_getWidth(mANativeWindow);
+    height = ANativeWindow_getHeight(mANativeWindow);
+    LOGI("Width = %d, Height = %d", width, height);
 
     LOGI("ANativeWindow_lock");
     if (0 != ANativeWindow_lock(mANativeWindow, &nwBuffer, 0)) {
@@ -132,6 +177,96 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_testSur
     ANativeWindow_release(mANativeWindow);
 }
 
+void nv21_copy(AVFrame *pFrame, AVCodecContext *pCodecCtx, unsigned char *y_dest, unsigned char *uv_dest){
+    //FILE * pfout = fopen ("/storage/emulated/0/test_copy.yuv420p" , "wb");
+    int i = 0;
+
+    int width = pCodecCtx->width, height = pCodecCtx->height;
+    int height_half = height / 2, width_half = width / 2;
+    int y_wrap = pFrame->linesize[0];
+    int u_wrap = pFrame->linesize[1];
+    int v_wrap = pFrame->linesize[2];
+
+    unsigned char *y_buf = pFrame->data[0];
+    unsigned char *u_buf = pFrame->data[1];
+    unsigned char *v_buf = pFrame->data[2];
+
+    int dest_offset = 0;
+    //save y
+    for (i = 0; i < height; i++){
+        //fwrite(y_buf + i * y_wrap, 1, width, pfout);
+        memcpy(y_dest + dest_offset, y_buf + i * y_wrap, width);
+        dest_offset = dest_offset + width;
+    }
+
+    // change to NV21 arrangement
+    int j = 0;
+    dest_offset = 0;
+    for (i = 0; i < height_half; i++){
+        for(j = 0; j < width_half; j++){
+            *(uv_dest + dest_offset) = *(v_buf + i * v_wrap + j);
+            dest_offset++;
+            *(uv_dest + dest_offset) = *(u_buf + i * u_wrap + j);
+            dest_offset++;
+        }
+    }
+
+    //LOGI("Copy %d bytes data", dest_offset);
+    //fwrite(dest, 1, dest_offset, pfout);
+
+
+    //fflush(pfout);
+    //fclose(pfout);
+}
+
+void yuv420p_copy(AVFrame *pFrame, AVCodecContext *pCodecCtx, unsigned char *dest){
+    //FILE * pfout = fopen ("/storage/emulated/0/test_copy.yuv420p" , "wb");
+    int i = 0;
+
+    int width = pCodecCtx->width, height = pCodecCtx->height;
+    int height_half = height / 2, width_half = width / 2;
+    int y_wrap = pFrame->linesize[0];
+    int u_wrap = pFrame->linesize[1];
+    int v_wrap = pFrame->linesize[2];
+
+    unsigned char *y_buf = pFrame->data[0];
+    unsigned char *u_buf = pFrame->data[1];
+    unsigned char *v_buf = pFrame->data[2];
+
+    int dest_offset = 0;
+    //save y
+    for (i = 0; i < height; i++){
+        //fwrite(y_buf + i * y_wrap, 1, width, pfout);
+        memcpy(dest + dest_offset, y_buf + i * y_wrap, width);
+        dest_offset = dest_offset + width;
+    }
+
+    //LOGI("===>copy Y success\n");
+    //save u
+    for (i = 0; i < height_half; i++){
+        //fwrite(u_buf + i * u_wrap, 1, width_half, pfout);
+        memcpy(dest + dest_offset, u_buf + i * u_wrap, width_half);
+        dest_offset = dest_offset + width_half;
+    }
+
+    //LOGI("===>copy U success\n");
+    //save v
+    for (i = 0; i < height_half; i++){
+        //fwrite(v_buf + i * v_wrap, 1, width_half, pfout);
+        memcpy(dest + dest_offset, v_buf + i * v_wrap, width_half);
+        dest_offset = dest_offset + width_half;
+    }
+
+    //LOGI("===>copy V success\n");
+
+    //LOGI("Copy %d bytes data", dest_offset);
+    //fwrite(dest, 1, dest_offset, pfout);
+
+
+    //fflush(pfout);
+    //fclose(pfout);
+}
+
 void yuv420p_save(AVFrame *pFrame, AVCodecContext *pCodecCtx)
 {
     FILE * pfout = fopen ("/storage/emulated/0/test.yuv420p" , "wb");
@@ -164,11 +299,38 @@ void yuv420p_save(AVFrame *pFrame, AVCodecContext *pCodecCtx)
     fclose(pfout);
 }
 
-JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPlay(JNIEnv *env, jobject activity, jobject surface){
+JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPlay(JNIEnv *env, jobject activity, jobject surface, jbyteArray jbuffer){
     	LOGI("Enter: naMain");
+
+    char* classname = "com/example/v002060/mjpegplayer/MainActivity";
+    jclass dpclazz = (*env)->FindClass(env,classname);
+    if(dpclazz == 0){
+        LOGE("Class: %s not found", classname);
+        return;
+    }
+    jmethodID methodID = (*env)->GetMethodID(env,dpclazz,"decodeCallback","([B)V");
+    if(methodID == 0){
+        LOGE("Method: decodeCallback not found");
+        return;
+    }
+
+    //jbyte a[] = {1,2,3,4,5,6}; // (equal to char a[]?)
+    int length = 3840*2160*3/2;
+    //unsigned char *yuvFrameData = malloc(length);
+    //unsigned char *yuvFrameData;
+    //jbyteArray frameByteArray = (*env)->NewByteArray(env, length);
+    //(*env)->SetByteArrayRegion (env, frameByteArray, 0, length, yuvFrameData);
+    //(*env)->CallVoidMethod(env, activity, methodID, frameByteArray);
+
+            unsigned char *yuvFrameData = malloc(3804*2160*3/2);
+            jbyteArray frameByteArray = (*env)->NewByteArray(env, 3804*2160*3/2);
+
+
+
 
     unsigned short *rgb565_value;
 
+/*
     ANativeWindow_Buffer nwBuffer;
 
     LOGI("ANativeWindow_fromSurface");
@@ -177,8 +339,9 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
         LOGE("ANativeWindow_fromSurface error");
         return;
     }
+*/
 
-    LOGI("Width = %d, Height = %d", ANativeWindow_getWidth (mANativeWindow), ANativeWindow_getHeight (mANativeWindow));
+    //LOGI("Width = %d, Height = %d", ANativeWindow_getWidth (mANativeWindow), ANativeWindow_getHeight (mANativeWindow));
 
     	AVFormatContext *pFormatCtx = NULL;
     	int             i, videoStream;
@@ -207,7 +370,7 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
 
     	//get C string from JNI jstring
     	//videoFileName = (char *)(*pEnv)->GetStringUTFChars(pEnv, pFileName, NULL);
-    	videoFileName = "/storage/emulated/0/MJPEG_Q15_1080P_60FPS.mkv";
+    	videoFileName = "/storage/emulated/legacy/MJPEG_Q2_4K_24FPS.mkv";
         LOGI("Video file name: %s", videoFileName);
 
     	// Open video file
@@ -302,7 +465,7 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
                         uint8_t *src_data[4], *dst_data[4];
                         int src_linesize[4], dst_linesize[4];
                         int src_w = pCodecCtx->width, src_h = pCodecCtx->height, dst_w = 1920, dst_h = 1080;
-                        enum AVPixelFormat src_pix_fmt = AV_PIX_FMT_YUV420P, dst_pix_fmt = AV_PIX_FMT_NV21;//AV_PIX_FMT_RGB565LE
+                        enum AVPixelFormat src_pix_fmt = AV_PIX_FMT_YUV420P, dst_pix_fmt = AV_PIX_FMT_RGB565LE;//AV_PIX_FMT_RGB565LE
                         const char *dst_filename = NULL;
                         FILE *dst_file;
                         int dst_bufsize;
@@ -340,10 +503,10 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
     			if(frameFinished) {
 
     			    //LOGI("ANativeWindow_lock");
-                    if (0 != ANativeWindow_lock(mANativeWindow, &nwBuffer, 0)) {
-                        LOGE("ANativeWindow_lock error");
-                        return;
-                    }
+                    //if (0 != ANativeWindow_lock(mANativeWindow, &nwBuffer, 0)) {
+                        //LOGE("ANativeWindow_lock error");
+                        //return;
+                    //}
 
 
 
@@ -376,6 +539,18 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
                             //sws_scale(sws_ctx, (uint8_t const * const *)pFrame->data,
                                       //pFrame->linesize, 0, src_h, dst_data, dst_linesize);
 
+                                //yuvFrameData = (*env)->GetPrimitiveArrayCritical(env, jbuffer, 0);
+                                //yuv420p_copy(pFrame, pCodecCtx, yuvFrameData);
+                                //(*env)->SetByteArrayRegion (env, frameByteArray, 0, length, yuvFrameData);
+                                //(*env)->ReleasePrimitiveArrayCritical(env, jbuffer, yuvFrameData, JNI_ABORT);
+                                //memcpy(y_data, yuvFrameData, 3840*2160);
+                                //memcpy(y_data, yuvFrameData+3840*2160, 3840*2160/2);
+                                nv21_copy(pFrame, pCodecCtx, y_data, uv_data);
+
+                                (*env)->CallVoidMethod(env, activity, methodID, frameByteArray);
+
+
+
                             /* write scaled image to file */
                             if(i == 120){
                                 dst_filename = "/storage/emulated/0/test.nv21";
@@ -388,8 +563,10 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
                                 fclose(dst_file);
 
                                 yuv420p_save(pFrame, pCodecCtx);
+                                //yuv420p_copy(pFrame, pCodecCtx, yuvFrameData);
+                                //(*env)->CallVoidMethod(env, activity, methodID, frameByteArray);
                             }
-                            test_value = dst_data[0];
+                            //test_value = dst_data[0];
 
 
 /*
@@ -425,7 +602,7 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
     				*/
 
 
-
+                    /*
                     //LOGI("Check nwBuffer->format");
                     if (nwBuffer.format == WINDOW_FORMAT_RGB_565) {
                         int y, x;
@@ -437,13 +614,14 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
 
                         for (y = 0; y < 1080; y++) {
                             for (x = 0; x < 1920; x++) {
-                                //line[x] = *test_value;
-                                //test_value++;
+                                line[x] = *test_value;
+                                test_value++;
                                 //LOGI("value = 0x%X", RGB565_RED);
                             }
                             line = line + nwBuffer.stride;
                         }
                     }
+                    */
 
 
                                             //av_freep(&src_data[0]);
@@ -467,10 +645,10 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
 
                 //LOGI("ANativeWindow_unlockAndPost");
                 //LOGI(" ");
-                if(0 !=ANativeWindow_unlockAndPost(mANativeWindow)){
-                    LOGE("ANativeWindow_unlockAndPost error");
-                    return;
-                }
+                //if(0 !=ANativeWindow_unlockAndPost(mANativeWindow)){
+                    //LOGE("ANativeWindow_unlockAndPost error");
+                    //return;
+                //}
 
     			}
     		}
@@ -495,11 +673,12 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
     	// Close the video file
     	avformat_close_input(&pFormatCtx);
 
-    LOGI("ANativeWindow_release");
-    ANativeWindow_release(mANativeWindow);
+    //LOGI("ANativeWindow_release");
+    //ANativeWindow_release(mANativeWindow);
 
                                                 av_freep(&dst_data[0]);
                                                 sws_freeContext(sws_ctx);
 
+    free(yuvFrameData);
         LOGI("Exit: naMain");
 }

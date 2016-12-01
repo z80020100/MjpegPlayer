@@ -10,18 +10,18 @@ extern "C" {
 /*
  * Class:     com_example_v002060_mjpegplayer_MainActivity
  * Method:    testSurface
- * Signature: (Landroid/view/Surface;)V
+ * Signature: (Landroid/view/Surface;[B)V
  */
 JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_testSurface
-  (JNIEnv *, jobject, jobject);
+  (JNIEnv *, jobject, jobject, jbyteArray);
 
 /*
  * Class:     com_example_v002060_mjpegplayer_MainActivity
  * Method:    startPlay
- * Signature: (Landroid/view/Surface;)V
+ * Signature: (Landroid/view/Surface;[B)V
  */
 JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPlay
-  (JNIEnv *, jobject, jobject);
+  (JNIEnv *, jobject, jobject, jbyteArray);
 
 #ifdef __cplusplus
 }

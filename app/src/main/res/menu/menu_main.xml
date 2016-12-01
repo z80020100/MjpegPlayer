@@ -6,4 +6,7 @@
     <item android:id="@+id/action_test" android:title="Test"
         android:orderInCategory="100" android:showAsAction="never"
         tools:ignore="AppCompatResource" />
+    <item android:id="@+id/change_opengl" android:title="GLSurface"
+        android:orderInCategory="100" android:showAsAction="never"
+        tools:ignore="AppCompatResource" />
 </menu>
