@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <pthread.h>
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -48,7 +49,7 @@ UvcDeviceInfo gUvcDeviceInfo;
 JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_testSurface(JNIEnv *env, jobject activity, jobject surface, jbyteArray buffer){
 
 
-
+    /*
     char uvc_device_name[16] = "/dev/video0";
     init_uvc_device_info(&gUvcDeviceInfo, uvc_device_name, sizeof(uvc_device_name), 1920, 1080);
     int ret = open_uvc_device(&gUvcDeviceInfo); // open and show the UVC device capability
@@ -98,18 +99,22 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_testSur
             }
 
     }
+    */
 
+    // Set JNI frame update callback function
     char* classname = "com/example/v002060/mjpegplayer/MainActivity";
-    jclass dpclazz = (*env)->FindClass(env,classname);
+    jclass dpclazz = (*env)->FindClass(env, classname);
     if(dpclazz == 0){
         LOGE("Class: %s not found", classname);
         return;
     }
-    jmethodID methodID = (*env)->GetMethodID(env,dpclazz,"decodeCallback","([B)V");
+    jmethodID methodID = (*env)->GetMethodID(env, dpclazz, "decodeCallback", "()V");
     if(methodID == 0){
         LOGE("Method: decodeCallback not found");
         return;
     }
+
+    uvc_device_start();
 
     //jbyte a[] = {1,2,3,4,5,6}; // (equal to char a[]?)
     int length = 6;
@@ -786,6 +791,8 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
 
 int uvc_preview_flag = 0;
 int update_update_flag = 0;
+extern int uvc_device_flag;
+pthread_mutex_t frame_update_lock;
 
 JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUvcPreview(JNIEnv *env, jobject activity, jstring jDevice, jint width, jint height){
 
@@ -978,8 +985,10 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUv
             }
             else{
                 //nv21_copy(pFrame, pCodecCtx, y_data, uv_data);
-                if(renderer_lock == 0){
+                if(1){
+                    pthread_mutex_lock(&frame_update_lock);
                     yuv422p_to_nv21_copy(pFrame, pCodecCtx, y_data, uv_data);
+                    pthread_mutex_unlock(&frame_update_lock);
                     (*env)->CallVoidMethod(env, activity, methodID);
                 }
                 else{
@@ -1014,5 +1023,8 @@ ERROR_EXIT:
 }
 
 JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_stopUvcPreview(JNIEnv *env, jobject activity){
+    uvc_device_flag = 0;
+    sleep(1);
     uvc_preview_flag = 0;
 }
+

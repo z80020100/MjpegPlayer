@@ -39,6 +39,14 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUv
 JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_stopUvcPreview
   (JNIEnv *, jobject);
 
+/*
+ * Class:     com_example_v002060_mjpegplayer_MainActivity
+ * Method:    startUvcDevice
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUvcDevice
+  (JNIEnv *, jobject);
+
 #ifdef __cplusplus
 }
 #endif

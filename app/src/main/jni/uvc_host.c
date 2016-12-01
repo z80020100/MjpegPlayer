@@ -1,4 +1,5 @@
 #include <uvc_host.h>
+#include<pthread.h>
 
 #include <android/log.h>
 #define LOG_TAG "uvc_host.c"
@@ -550,6 +551,7 @@ int stop_uvc_capture(UvcDeviceInfo *uvc_device_info){
     return status;
 }
 
+pthread_mutex_t lock;
 int get_vuc_frame(UvcDeviceInfo *uvc_device_info){
     int ret, status = -1;
     if(uvc_device_info->stage == UVC_DEVICE_STAGE_START_CAPTURE){
@@ -568,8 +570,10 @@ int get_vuc_frame(UvcDeviceInfo *uvc_device_info){
             gettimeofday(&uvc_device_info->tv,NULL);
             time_in_micros = 1000000 * uvc_device_info->tv.tv_sec + uvc_device_info->tv.tv_usec;
             //printf("buf.index = %02d, buf.bytesused = %d, timestamp = %ld\n", uvc_device_info->buf.index, uvc_device_info->buf.bytesused, (time_in_micros)/1000);
-            
+
+            pthread_mutex_lock(&lock);
             uvc_device_info->jpeg_buf_used_size = write_jpg_memory(uvc_device_info->memory[uvc_device_info->buf.index], uvc_device_info->buf.bytesused, uvc_device_info->jpeg_buf);
+            pthread_mutex_unlock(&lock);
 
         /* Requeue buffer */
         //LOGI("Start: VIDIOC_QBUF");

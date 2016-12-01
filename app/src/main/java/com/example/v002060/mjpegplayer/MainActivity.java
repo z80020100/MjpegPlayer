@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity{
     public native void startPlay(Surface surface, byte[] buffer);
     public native void startUvcPreview(String device, int width, int height);
     public native void stopUvcPreview();
+    public native void startUvcDevice();
 
     private static final String TAG = "MainActivity";
     private String mSdPath;
@@ -79,11 +80,15 @@ public class MainActivity extends AppCompatActivity{
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_test) {
             //sampleMediaCodec.play(this, surface);
-            byte[] data = new byte[10];
-            testSurface(surface, data);
-            for(int i = 0; i < data.length; i++){
-                Log.i(TAG, String.format("0x%02X", data[i]));
-            }
+            new Thread(new Runnable() {
+                public void run() {
+                    byte[] data = new byte[10];
+                    testSurface(surface, data);
+                    for(int i = 0; i < data.length; i++){
+                        //Log.i(TAG, String.format("0x%02X", data[i]));
+                    }
+                }
+            }).start();
 
             return true;
         }
@@ -100,9 +105,16 @@ public class MainActivity extends AppCompatActivity{
         if(id == R.id.uvc_preview){
             new Thread(new Runnable() {
                 public void run() {
-                    startUvcPreview("/dev/video0", 3840, 2160);
+                    startUvcPreview("/dev/video1", 1920, 1080);
                 }
             }).start();
+
+            new Thread(new Runnable() {
+                public void run() {
+                    startUvcDevice();
+                }
+            }).start();
+
             return true;
         }
 

@@ -7,10 +7,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <pthread.h>
 
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
-
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
@@ -207,7 +207,7 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_NativeOpenGLNV21Rend
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_LINEAR);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, 3840, 2160, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, y_data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, 1920, 1080, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, y_data);
 
         uv_data = malloc(3840*2160/2);
         memset(uv_data, 0, 3840*2160/2);
@@ -216,11 +216,13 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_NativeOpenGLNV21Rend
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA, 3840 / 2, 2160 / 2, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, uv_data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA, 1920 / 2, 1080 / 2, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, uv_data);
 }
 
+extern pthread_mutex_t frame_update_lock;
 JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_NativeOpenGLNV21Renderer_nativeOnDrawFrame(JNIEnv *env, jobject renderer){
         renderer_lock = 1;
+        pthread_mutex_lock(&frame_update_lock);
 
         //gettimeofday(&tv,NULL);
         //fps_count_start_time_us = 1000000 * tv.tv_sec + tv.tv_usec;
@@ -229,18 +231,20 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_NativeOpenGLNV21Rend
         //gettimeofday(&tv, NULL);
         //fps_count_cur_time_us = 1000000 * tv.tv_sec + tv.tv_usec;
         //LOGI("glBindTexture(GL_TEXTURE_2D, YTextureId) time: %f ms", (float)(fps_count_cur_time_us - fps_count_start_time_us)/1000);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, 3840, 2160, 0,GL_LUMINANCE, GL_UNSIGNED_BYTE, y_data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, 1920, 1080, 0,GL_LUMINANCE, GL_UNSIGNED_BYTE, y_data);
         //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 3840, 2160, GL_LUMINANCE, GL_UNSIGNED_BYTE, y_data);
         //gettimeofday(&tv, NULL);
         //fps_count_cur_time_us = 1000000 * tv.tv_sec + tv.tv_usec;
         //LOGI("glTexImage2D Y data time: %f ms", (float)(fps_count_cur_time_us - fps_count_start_time_us)/1000);
 
         glBindTexture(GL_TEXTURE_2D, UvTextureId);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA, 3840 / 2, 2160 / 2, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, uv_data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA, 1920 / 2, 1080 / 2, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, uv_data);
         //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 3840/2, 2160/2, GL_LUMINANCE, GL_UNSIGNED_BYTE, uv_data);
         //gettimeofday(&tv, NULL);
         //fps_count_cur_time_us = 1000000 * tv.tv_sec + tv.tv_usec;
         //LOGI("glTexImage2D UV data time: %f ms", (float)(fps_count_cur_time_us - fps_count_start_time_us)/1000);
+
+        pthread_mutex_unlock(&frame_update_lock);
 
         glUseProgram(ProgramHandler);
         //gettimeofday(&tv, NULL);
@@ -272,6 +276,7 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_NativeOpenGLNV21Rend
         glDisableVertexAttribArray(PositionHandler);
         glDisableVertexAttribArray(TextureCoordinateHandler);
         glBindTexture(GL_TEXTURE_2D, 0);
+
 
         renderer_lock = 0;
 
