@@ -1,6 +1,8 @@
 package com.example.v002060.mjpegplayer;
 
+import android.annotation.SuppressLint;
 import android.opengl.GLSurfaceView;
+import android.util.Log;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -23,9 +25,11 @@ public class NativeOpenGLNV21Renderer implements GLSurfaceView.Renderer {
         nativeOnSurfaceCreated(3840, 2160);
     }
 
+    @SuppressLint("LongLogTag")
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
         nativeOnSurfaceChanged(width, height);
+        Log.i(TAG, "onSurfaceChanged");
     }
 
     @Override

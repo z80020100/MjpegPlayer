@@ -5,6 +5,7 @@
     android:orientation="horizontal"
     android:padding="0dip"
     android:background="#CCCCCC">
+<!--android:gravity="center_vertical"-->
 
     <android.opengl.GLSurfaceView
         android:id="@+id/PipGLSurfaceView"

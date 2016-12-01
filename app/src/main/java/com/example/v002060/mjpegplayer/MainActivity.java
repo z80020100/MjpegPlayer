@@ -59,39 +59,16 @@ public class MainActivity extends AppCompatActivity{
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.pip);
+        setContentView(R.layout.activity_main);
 
         mSdPath = Environment.getExternalStorageDirectory().toString();
 
-        videoSurfaceView = (SurfaceView)findViewById(R.id.PipRtspView);
+        videoSurfaceView = (SurfaceView)findViewById(R.id.preview);
         surfaceHolder = videoSurfaceView.getHolder();
         //surfaceHolder.setFormat(PixelFormat.RGBX_8888);
         surface = surfaceHolder.getSurface();
 
         mBuffer = new byte[3840*2160*3/2];
-
-        /*
-        ViewGroup.LayoutParams lp = videoSurfaceView.getLayoutParams();
-        lp.width = 1280;
-        lp.height =720;
-        videoSurfaceView.setLayoutParams(lp);
-        */
-
-        // Create a OpenGL view.
-        view = (GLSurfaceView) findViewById(R.id.PipGLSurfaceView);
-        view.setEGLContextClientVersion(2);
-
-        // Creating and attaching the renderer.
-        //image = readDataFromAssets("test_4k.yuv420p");
-        int w = 3840;
-        int h = 2160;
-        //byte[] data = new byte[w * h * 3 / 2];
-        //testData = new Data(w, h, data);
-        //renderer = new OpenGLNV21Renderer(this, testData);
-        nativeRenderer = new NativeOpenGLNV21Renderer();
-        view.setRenderer(nativeRenderer);
-        view.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
-
     }
 
     @Override
@@ -195,17 +172,39 @@ public class MainActivity extends AppCompatActivity{
         }
 
         if(id == R.id.change_pip){
+            /*
             int GLViewWidth = view.getWidth();
             int GLViewHeight = view.getHeight();
-
             Log.i(TAG, "GLSurface Width = " + GLViewWidth + ", GLSurface Height = " + GLViewHeight);
-
             ViewGroup.LayoutParams lp = videoSurfaceView.getLayoutParams();
             lp.width = GLViewWidth/2;
             lp.height =GLViewHeight/2;
             view.setLayoutParams(lp);
+            */
 
-            //setContentView(R.layout.pip);
+            int pipWidth = videoSurfaceView.getWidth()/2;
+            int pipHeight = videoSurfaceView.getHeight()/2;
+            Log.i(TAG, "PIP Width = " + pipWidth + ", PIP Height = " + pipHeight);
+
+            setContentView(R.layout.pip);
+
+            // Create a OpenGL view for UVC
+            view = (GLSurfaceView) findViewById(R.id.PipGLSurfaceView);
+            view.setEGLContextClientVersion(2);
+            ViewGroup.LayoutParams lp = view.getLayoutParams();
+            lp.width = pipWidth;
+            lp.height = pipHeight;
+            view.setLayoutParams(lp);
+            nativeRenderer = new NativeOpenGLNV21Renderer();
+            view.setRenderer(nativeRenderer);
+            view.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+
+            // Set a SurfaceView for RTSP
+            videoSurfaceView = (SurfaceView)findViewById(R.id.PipRtspView);
+            lp = videoSurfaceView.getLayoutParams();
+            lp.width = pipWidth;
+            lp.height = pipHeight;
+            videoSurfaceView.setLayoutParams(lp);
 
             return true;
         }
