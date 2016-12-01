@@ -45,6 +45,9 @@ public class MainActivity extends AppCompatActivity{
 
     private Button greenButton;
 
+    private boolean RtspClientStartFlag = false;
+    private RtspClient mRtspClient;
+
     /* UI */
     private ImageView imgvPreview;
     private SurfaceView videoSurfaceView;
@@ -192,18 +195,24 @@ public class MainActivity extends AppCompatActivity{
         }
 
         if(id == R.id.change_pip){
-            int videoSurfaceViewWidth = view.getWidth();
-            int videoSurfaceViewHeight = view.getHeight();
+            int GLViewWidth = view.getWidth();
+            int GLViewHeight = view.getHeight();
 
-            Log.i(TAG, "GLSurface Width = " + videoSurfaceViewWidth + ", GLSurface Height = " + videoSurfaceViewHeight);
+            Log.i(TAG, "GLSurface Width = " + GLViewWidth + ", GLSurface Height = " + GLViewHeight);
 
             ViewGroup.LayoutParams lp = videoSurfaceView.getLayoutParams();
-            lp.width = videoSurfaceViewWidth/2;
-            lp.height =videoSurfaceViewHeight/2;
+            lp.width = GLViewWidth/2;
+            lp.height =GLViewHeight/2;
             view.setLayoutParams(lp);
 
             //setContentView(R.layout.pip);
 
+            return true;
+        }
+
+        if(id == R.id.play_rtsp){
+            String host = "rtsp://192.168.0.130:8557/PSIA/Streaming/channels/2?videoCodecType=H.264";
+            startRtspClient(host);
             return true;
         }
 
@@ -277,5 +286,27 @@ public class MainActivity extends AppCompatActivity{
 
         //testData.updateData(mBuffer);
         view.requestRender();
+    }
+
+    private void startRtspClient(String host){
+        if(RtspClientStartFlag == false){
+            mRtspClient = new RtspClient(host);
+            mRtspClient.setSurfaceView(videoSurfaceView);
+            mRtspClient.start();
+            RtspClientStartFlag = true;
+        }
+        else{
+            Log.e(TAG, "RTSP client already start!");
+        }
+    }
+
+    private void closeRtspClient(){
+        if(RtspClientStartFlag == true){
+            mRtspClient.shutdown();
+            RtspClientStartFlag = false;
+        }
+        else{
+            Log.e(TAG, "RTSP client doesn't start!");
+        }
     }
 }

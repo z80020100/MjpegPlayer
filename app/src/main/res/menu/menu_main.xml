@@ -18,4 +18,7 @@
     <item android:id="@+id/change_pip" android:title="PIP Mode"
         android:orderInCategory="100" android:showAsAction="never"
         tools:ignore="AppCompatResource" />
+    <item android:id="@+id/play_rtsp" android:title="Play DocCam"
+        android:orderInCategory="100" android:showAsAction="never"
+        tools:ignore="AppCompatResource" />
 </menu>
