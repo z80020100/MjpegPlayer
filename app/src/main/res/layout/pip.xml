@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="horizontal"
+    android:padding="0dip"
+    android:background="#CCCCCC">
+
+    <android.opengl.GLSurfaceView
+        android:id="@+id/PipGLSurfaceView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <SurfaceView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/PipRtspView" />
+
+</LinearLayout>

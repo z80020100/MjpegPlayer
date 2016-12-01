@@ -44,6 +44,19 @@ void release_native_window(){
 
 }
 
+JNIEXPORT jint JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_getGlobalAddress(JNIEnv *env, jobject activity){
+    LOGI("Global variable address (dec): %u", &renderer_lock);
+    LOGI("Global variable address (hex): 0x%x", &renderer_lock);
+    LOGI("Global variable address: %p", &renderer_lock);
+
+    return &renderer_lock;
+}
+
+JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_sendGlobalAdress(JNIEnv *env, jobject activity, jint address){
+        LOGI("Send variable address (dec): %u", address);
+        LOGI("Send variable address (hex): 0x%x", address);
+}
+
 UvcDeviceInfo gUvcDeviceInfo;
 // Testing for surface operation from native C code
 JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_testSurface(JNIEnv *env, jobject activity, jobject surface, jbyteArray buffer){
@@ -113,8 +126,6 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_testSur
         LOGE("Method: decodeCallback not found");
         return;
     }
-
-    uvc_device_start();
 
     //jbyte a[] = {1,2,3,4,5,6}; // (equal to char a[]?)
     int length = 6;
@@ -277,6 +288,10 @@ void yuv422p_to_nv21_copy(AVFrame *pFrame, AVCodecContext *pCodecCtx, unsigned c
 
     //fflush(pfout);
     //fclose(pfout);
+}
+
+void yuv422p_to_yv12_copy(AVFrame *pFrame, AVCodecContext *pCodecCtx, unsigned char *dest){
+
 }
 
 void nv21_copy(AVFrame *pFrame, AVCodecContext *pCodecCtx, unsigned char *y_dest, unsigned char *uv_dest){
@@ -519,7 +534,7 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
     	}
     	if(pCodecCtx->codec_id == AV_CODEC_ID_MJPEG){
     	    LOGI("pCodecCtx->codec_id = AV_CODEC_ID_MJPEG");
-    	    pCodecCtx->thread_count = 4;
+    	    pCodecCtx->thread_count = 8;
     	    pCodecCtx->thread_type = FF_THREAD_FRAME;
     	}
 
@@ -987,7 +1002,16 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUv
                 //nv21_copy(pFrame, pCodecCtx, y_data, uv_data);
                 if(1){
                     pthread_mutex_lock(&frame_update_lock);
-                    yuv422p_to_nv21_copy(pFrame, pCodecCtx, y_data, uv_data);
+                    if(pFrame->format == AV_PIX_FMT_YUVJ422P){
+                        yuv422p_to_nv21_copy(pFrame, pCodecCtx, y_data, uv_data);
+                    }
+                    else if(pFrame->format == AV_PIX_FMT_YUVJ420P){
+                        nv21_copy(pFrame, pCodecCtx, y_data, uv_data);
+                    }
+                    else{
+                        LOGE("Unknown format after decoding!");
+                    }
+
                     pthread_mutex_unlock(&frame_update_lock);
                     (*env)->CallVoidMethod(env, activity, methodID);
                 }

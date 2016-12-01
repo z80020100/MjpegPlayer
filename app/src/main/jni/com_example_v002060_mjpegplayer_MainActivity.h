@@ -47,6 +47,30 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_stopUvc
 JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUvcDevice
   (JNIEnv *, jobject);
 
+/*
+ * Class:     com_example_v002060_mjpegplayer_MainActivity
+ * Method:    stopUvcDevice
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_stopUvcDevice
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_example_v002060_mjpegplayer_MainActivity
+ * Method:    getGlobalAddress
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_getGlobalAddress
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_example_v002060_mjpegplayer_MainActivity
+ * Method:    sendGlobalAdress
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_sendGlobalAdress
+  (JNIEnv *, jobject, jint);
+
 #ifdef __cplusplus
 }
 #endif

@@ -11,6 +11,7 @@ import android.view.MenuItem;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -27,6 +28,10 @@ public class MainActivity extends AppCompatActivity{
     public native void startUvcPreview(String device, int width, int height);
     public native void stopUvcPreview();
     public native void startUvcDevice();
+    public native void stopUvcDevice();
+
+    public native int getGlobalAddress();
+    public native void sendGlobalAdress(int address);
 
     private static final String TAG = "MainActivity";
     private String mSdPath;
@@ -51,16 +56,39 @@ public class MainActivity extends AppCompatActivity{
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.pip);
 
         mSdPath = Environment.getExternalStorageDirectory().toString();
 
-        videoSurfaceView = (SurfaceView)findViewById(R.id.preview);
+        videoSurfaceView = (SurfaceView)findViewById(R.id.PipRtspView);
         surfaceHolder = videoSurfaceView.getHolder();
         //surfaceHolder.setFormat(PixelFormat.RGBX_8888);
         surface = surfaceHolder.getSurface();
 
         mBuffer = new byte[3840*2160*3/2];
+
+        /*
+        ViewGroup.LayoutParams lp = videoSurfaceView.getLayoutParams();
+        lp.width = 1280;
+        lp.height =720;
+        videoSurfaceView.setLayoutParams(lp);
+        */
+
+        // Create a OpenGL view.
+        view = (GLSurfaceView) findViewById(R.id.PipGLSurfaceView);
+        view.setEGLContextClientVersion(2);
+
+        // Creating and attaching the renderer.
+        //image = readDataFromAssets("test_4k.yuv420p");
+        int w = 3840;
+        int h = 2160;
+        //byte[] data = new byte[w * h * 3 / 2];
+        //testData = new Data(w, h, data);
+        //renderer = new OpenGLNV21Renderer(this, testData);
+        nativeRenderer = new NativeOpenGLNV21Renderer();
+        view.setRenderer(nativeRenderer);
+        view.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+
     }
 
     @Override
@@ -87,6 +115,8 @@ public class MainActivity extends AppCompatActivity{
                     for(int i = 0; i < data.length; i++){
                         //Log.i(TAG, String.format("0x%02X", data[i]));
                     }
+                    int address = getGlobalAddress();
+                    sendGlobalAdress(address);
                 }
             }).start();
 
@@ -109,17 +139,22 @@ public class MainActivity extends AppCompatActivity{
                 }
             }).start();
 
+
             new Thread(new Runnable() {
                 public void run() {
                     startUvcDevice();
                 }
             }).start();
 
+
             return true;
         }
 
         if(id == R.id.uvc_preview_stop){
+            stopUvcDevice();
             stopUvcPreview();
+
+            return true;
         }
 
         if(id == R.id.change_opengl){
@@ -152,6 +187,22 @@ public class MainActivity extends AppCompatActivity{
             //greenButton.setVisibility(View.INVISIBLE);
 
             //decodeCallback(data);
+
+            return true;
+        }
+
+        if(id == R.id.change_pip){
+            int videoSurfaceViewWidth = view.getWidth();
+            int videoSurfaceViewHeight = view.getHeight();
+
+            Log.i(TAG, "GLSurface Width = " + videoSurfaceViewWidth + ", GLSurface Height = " + videoSurfaceViewHeight);
+
+            ViewGroup.LayoutParams lp = videoSurfaceView.getLayoutParams();
+            lp.width = videoSurfaceViewWidth/2;
+            lp.height =videoSurfaceViewHeight/2;
+            view.setLayoutParams(lp);
+
+            //setContentView(R.layout.pip);
 
             return true;
         }

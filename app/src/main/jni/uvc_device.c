@@ -399,7 +399,7 @@ static void
 uvc_events_process_standard(struct uvc_device *dev, struct usb_ctrlrequest *ctrl,
 			    struct uvc_request_data *resp)
 {
-	LOGI("======>uvc_events_process_standard\r\n");
+	LOGI("======>uvc_events_process_standard");
 	(void)dev;
 	(void)ctrl;
 	resp->length = 0;
@@ -410,7 +410,7 @@ static void
 uvc_events_process_control(struct uvc_device *dev, uint8_t req, uint8_t cs,
 			   struct uvc_request_data *resp)
 {
-	LOGI("======>uvc_events_process_control (req %02x cs %02x)\n", req, cs);
+	LOGI("======>uvc_events_process_control (req %02x cs %02x)", req, cs);
 	(void)dev;
 	//(void)resp;
 	resp->length = 0;
@@ -497,16 +497,16 @@ uvc_events_process_class(struct uvc_device *dev, struct usb_ctrlrequest *ctrl,
 	switch (ctrl->wIndex & 0xff) {
 	case UVC_INTF_CONTROL:
 		uvc_events_process_control(dev, ctrl->bRequest, ctrl->wValue >> 8, resp);
-LOGI("UVC_INTF_CONTROL{%s}{%s}{%d}\r\n", __FILE__, __FUNCTION__, __LINE__);
+LOGI("UVC_INTF_CONTROL{%s}{%s}{%d}", __FILE__, __FUNCTION__, __LINE__);
 		break;
 
 	case UVC_INTF_STREAMING:
 		uvc_events_process_streaming(dev, ctrl->bRequest, ctrl->wValue >> 8, resp);
-LOGI("UVC_INTF_STREAMING{%s}{%s}{%d}\r\n", __FILE__, __FUNCTION__, __LINE__);
+LOGI("UVC_INTF_STREAMING{%s}{%s}{%d}", __FILE__, __FUNCTION__, __LINE__);
 		break;
 
 	default:
-LOGI("{%s}{%s}{%d}\r\n", __FILE__, __FUNCTION__, __LINE__);
+LOGI("{%s}{%s}{%d}", __FILE__, __FUNCTION__, __LINE__);
 		break;
 	}
 }
@@ -519,22 +519,22 @@ uvc_events_process_setup(struct uvc_device *dev, struct usb_ctrlrequest *ctrl,
 	dev->control = 0;
 
 	LOGI("bRequestType %02x bRequest %02x wValue %04x wIndex %04x "
-		"wLength %04x\n", ctrl->bRequestType, ctrl->bRequest,
+		"wLength %04x", ctrl->bRequestType, ctrl->bRequest,
 		ctrl->wValue, ctrl->wIndex, ctrl->wLength);
 
 	switch (ctrl->bRequestType & USB_TYPE_MASK) {
 	case USB_TYPE_STANDARD:
-LOGI("USB_TYPE_STANDARD{%s}{%s}{%d}\r\n", __FILE__, __FUNCTION__, __LINE__);
+LOGI("USB_TYPE_STANDARD{%s}{%s}{%d}", __FILE__, __FUNCTION__, __LINE__);
 		uvc_events_process_standard(dev, ctrl, resp);
 		break;
 
 	case USB_TYPE_CLASS:
-LOGI("USB_TYPE_CLASS{%s}{%s}{%d}\r\n", __FILE__, __FUNCTION__, __LINE__);
+LOGI("USB_TYPE_CLASS{%s}{%s}{%d}", __FILE__, __FUNCTION__, __LINE__);
 		uvc_events_process_class(dev, ctrl, resp);
 		break;
 
 	default:
-LOGI("{%s}{%s}{%d}\r\n", __FILE__, __FUNCTION__, __LINE__);
+LOGI("{%s}{%s}{%d}", __FILE__, __FUNCTION__, __LINE__);
 		break;
 	}
 }
@@ -632,29 +632,29 @@ uvc_events_process(struct uvc_device *dev)
 
 	switch (v4l2_event.type) {
 	case UVC_EVENT_CONNECT:
-		LOGI("#UVC_EVENT_CONNECT{%s}{%s}{%d}\r\n", __FILE__, __FUNCTION__, __LINE__);
+		LOGI("#UVC_EVENT_CONNECT{%s}{%s}{%d}", __FILE__, __FUNCTION__, __LINE__);
 	case UVC_EVENT_DISCONNECT:
-		LOGI("#UVC_EVENT_DISCONNECT{%s}{%s}{%d}\r\n", __FILE__, __FUNCTION__, __LINE__);
+		LOGI("#UVC_EVENT_DISCONNECT{%s}{%s}{%d}", __FILE__, __FUNCTION__, __LINE__);
 		return;
 
 	case UVC_EVENT_SETUP:
-		LOGI("#UVC_EVENT_SETUP{%s}{%s}{%d}\r\n", __FILE__, __FUNCTION__, __LINE__);
+		LOGI("#UVC_EVENT_SETUP{%s}{%s}{%d}", __FILE__, __FUNCTION__, __LINE__);
 		uvc_events_process_setup(dev, &uvc_event->req, &resp);
 		break;
 
 	case UVC_EVENT_DATA:
-		LOGI("#UVC_EVENT_DATA{%s}{%s}{%d}\r\n", __FILE__, __FUNCTION__, __LINE__);
+		LOGI("#UVC_EVENT_DATA{%s}{%s}{%d}", __FILE__, __FUNCTION__, __LINE__);
 		uvc_events_process_data(dev, &uvc_event->data);
 		return;
 
 	case UVC_EVENT_STREAMON:
-		LOGI("#UVC_EVENT_STREAMON{%s}{%s}{%d}\r\n", __FILE__, __FUNCTION__, __LINE__);
+		LOGI("#UVC_EVENT_STREAMON{%s}{%s}{%d}", __FILE__, __FUNCTION__, __LINE__);
 		uvc_video_reqbufs(dev, 4);
 		uvc_video_stream(dev, 1);
 		break;
 
 	case UVC_EVENT_STREAMOFF:
-		LOGI("#UVC_EVENT_STREAMOFF{%s}{%s}{%d}\r\n", __FILE__, __FUNCTION__, __LINE__);
+		LOGI("#UVC_EVENT_STREAMOFF{%s}{%s}{%d}", __FILE__, __FUNCTION__, __LINE__);
 		uvc_video_stream(dev, 0);
 		uvc_video_reqbufs(dev, 0);
 		break;
@@ -662,7 +662,7 @@ uvc_events_process(struct uvc_device *dev)
 
 	ioctl(dev->fd, UVCIOC_SEND_RESPONSE, &resp);
 	if (ret < 0) {
-		LOGE("UVCIOC_S_EVENT failed: %s (%d)\n", strerror(errno),
+		LOGE("UVCIOC_S_EVENT failed: %s (%d)", strerror(errno),
 			errno);
 		return;
 	}
@@ -671,7 +671,7 @@ uvc_events_process(struct uvc_device *dev)
 static void
 uvc_events_init(struct uvc_device *dev)
 {
-	LOGI("======>uvc_events_init\r\n");
+	LOGI("======>uvc_events_init");
 	struct v4l2_event_subscription sub;
 
 	uvc_fill_streaming_control(dev, &dev->probe, 0, 0);
@@ -730,49 +730,8 @@ static void image_load(struct uvc_device *dev, const char *img)
 	close(fd);
 }
 
-int uvc_device_start(){
-    char *device = "/dev/video0";
-	struct uvc_device *dev;
-	char *mjpeg_image = "/sdcard/1080p1.jpg";
-	int bulk_mode = 0;
-	fd_set fds;
-	int ret;
-
-    dev = uvc_open(device);
-    if (dev == NULL)
-    {
-        LOGE("Open %s, failed", device);
-        return -1;
-    }
-
-    LOGI("Open %s success", device);
-
-    image_load(dev, mjpeg_image);
-
-    dev->bulk = bulk_mode;
-
-    uvc_events_init(dev);
-    uvc_video_init(dev);
-
-
-    FD_ZERO(&fds);
-    FD_SET(dev->fd, &fds);
-
-    while (1) {
-    	fd_set efds = fds;
-    	fd_set wfds = fds;
-
-    	ret = select(dev->fd + 1, NULL, &wfds, &efds, NULL);
-    	if (FD_ISSET(dev->fd, &efds))
-    		uvc_events_process(dev);
-    	if (FD_ISSET(dev->fd, &wfds)){
-    		if(stream_flag)
-    			uvc_video_process(dev);
-    	}
-    }
-
-    uvc_close(dev);
-    return 0;
+JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_stopUvcDevice(JNIEnv *env, jobject activity){
+    uvc_device_flag = 0;
 }
 
 JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUvcDevice(JNIEnv *env, jobject activity){
@@ -803,9 +762,15 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUv
     FD_ZERO(&fds);
     FD_SET(dev->fd, &fds);
 
+    fd_set efds;
+    fd_set wfds;
+
     while (uvc_device_flag) {
-    	fd_set efds = fds;
-    	fd_set wfds = fds;
+        usleep(1000);
+        LOGD("Loop in uvc_device.c");
+
+    	efds = fds;
+    	wfds = fds;
 
     	ret = select(dev->fd + 1, NULL, &wfds, &efds, NULL);
     	if (FD_ISSET(dev->fd, &efds))
