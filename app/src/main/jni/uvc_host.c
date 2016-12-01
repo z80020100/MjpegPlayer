@@ -110,6 +110,7 @@ int open_uvc_device(UvcDeviceInfo *uvc_device_info){
     
     if(uvc_device_info->stage == UVC_DEVICE_STAGE_INIT){
         uvc_device_info->uvc_dev_fd = open(uvc_device_info->uvc_dev_path, O_RDWR);
+        //uvc_device_info->uvc_dev_fd = open(uvc_device_info->uvc_dev_path, O_RDWR | O_NONBLOCK, 0);
         if(uvc_device_info->uvc_dev_fd == -1){
             LOGE("Open UVC Device: %s fail!", uvc_device_info->uvc_dev_path);
             //perror("Error");
@@ -555,7 +556,8 @@ int get_vuc_frame(UvcDeviceInfo *uvc_device_info){
         memset(&uvc_device_info->buf, 0, sizeof(struct v4l2_buffer));
             uvc_device_info->buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
             uvc_device_info->buf.memory = V4L2_MEMORY_MMAP;
-        
+
+            //LOGI("Start: VIDIOC_DQBUF");
             ret = ioctl(uvc_device_info->uvc_dev_fd, VIDIOC_DQBUF, &uvc_device_info->buf);
             if(ret < 0){
                 LOGE("Query %s VIDIOC_DQBUF (dequeue buffer) fail!", uvc_device_info->uvc_dev_path);
@@ -570,6 +572,7 @@ int get_vuc_frame(UvcDeviceInfo *uvc_device_info){
             uvc_device_info->jpeg_buf_used_size = write_jpg_memory(uvc_device_info->memory[uvc_device_info->buf.index], uvc_device_info->buf.bytesused, uvc_device_info->jpeg_buf);
 
         /* Requeue buffer */
+        //LOGI("Start: VIDIOC_QBUF");
         ret = ioctl(uvc_device_info->uvc_dev_fd, VIDIOC_QBUF, &uvc_device_info->buf);
         if(ret < 0) {
             LOGE("Query %s VIDIOC_QBUF (requeue buffer) fail!", uvc_device_info->uvc_dev_path);

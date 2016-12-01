@@ -11,6 +11,9 @@
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+
 #include <android/log.h>
 #define LOG_TAG "opengl_nv21_renderer.c"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)

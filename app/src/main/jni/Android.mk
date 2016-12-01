@@ -4,7 +4,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := MjpegPlayer
 LOCAL_SRC_FILES := mjpeg_player.c opengl_nv21_renderer.c uvc_host.c
-LOCAL_LDLIBS += -llog -landroid -lGLESv2
+LOCAL_LDLIBS += -llog -landroid -lGLESv2 -lEGL
 LOCAL_SHARED_LIBRARIES := libavformat libavcodec libswscale libavutil libwsresample
 LOCAL_C_INCLUDES := include
 

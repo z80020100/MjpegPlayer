@@ -869,13 +869,25 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUv
     av_register_all();
     LOGI("Register all formats and codecs");
 
+    // Initialization
+    av_init_packet(&packet);
     pCodec = avcodec_find_decoder(AV_CODEC_ID_MJPEG);
+    if (!pCodec) {
+        LOGE("Codec not found");
+        return;
+    }
+
     pCodecCtx = avcodec_alloc_context3(pCodec);
+    if(!pCodecCtx){
+        LOGE("Could not allocate video codec context");
+        return;
+    }
+
     avcodec_get_context_defaults3(pCodecCtx, pCodec);
     pCodecCtx->thread_count = 4;
     pCodecCtx->thread_type = FF_THREAD_FRAME;
-    pCodecCtx->width = 3840;
-    pCodecCtx->height = 2160;
+    //pCodecCtx->width = 3840;
+    //pCodecCtx->height = 2160;
 
     if(avcodec_open2(pCodecCtx, pCodec, NULL) < 0){
         LOGE("Could not open codec");
@@ -894,16 +906,13 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUv
 
     // Set FFmpeg scaler
     int use_ffmpeg_scaler = 0;
-                uint8_t *src_data[4], *dst_data[4];
-                int src_linesize[4], dst_linesize[4];
-                int src_w = 3840, src_h = 2160, dst_w = 3840, dst_h = 2160;
-                enum AVPixelFormat src_pix_fmt = AV_PIX_FMT_YUV422P, dst_pix_fmt = AV_PIX_FMT_NV21; // AV_PIX_FMT_RGB565LE, AV_PIX_FMT_NV21
-                const char *dst_filename = NULL;
-                FILE *dst_file;
-                int dst_bufsize;
-                struct SwsContext *sws_ctx;
-                //int ret;
-                unsigned short *test_value;
+    uint8_t *dst_data[4];
+    int dst_linesize[4];
+    int src_w = 3840, src_h = 2160, dst_w = 3840, dst_h = 2160;
+    enum AVPixelFormat src_pix_fmt = AV_PIX_FMT_YUV422P, dst_pix_fmt = AV_PIX_FMT_NV21; // AV_PIX_FMT_RGB565LE, AV_PIX_FMT_NV21
+    FILE *dst_file;
+    int dst_bufsize;
+    struct SwsContext *sws_ctx;
 
 
                 /* create scaling context */
@@ -938,10 +947,16 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUv
 
         packet.data = gUvcDeviceInfo.jpeg_buf;
         packet.size = gUvcDeviceInfo.jpeg_buf_used_size;
+        //LOGI("packet.size = %d", gUvcDeviceInfo.jpeg_buf_used_size);
 
         //LOGI("pCodecCtx->width = %d, pCodecCtx->height = %d", pCodecCtx->width, pCodecCtx->height);
 
-        avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished, &packet);
+        //LOGI("Start decode");
+        if(avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished, &packet) < 0){
+            LOGE("Error while decoding frame");
+            continue;
+        }
+        //LOGI("End decode");
     	// Did we get a video frame?
     	if(frameFinished) {
 
@@ -974,11 +989,10 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUv
             }
             i++;
     	}
+
     }
 
-    memset(y_data, 0, 3840*2160);
-    memset(uv_data, 128, 3840*2160/2);
-    (*env)->CallVoidMethod(env, activity, methodID);
+
 
     // Free the YUV frame
     free(pFrame);
@@ -986,9 +1000,16 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUv
     // Close the codec
     avcodec_close(pCodecCtx);
 
+    sws_freeContext(sws_ctx);
+
 
 ERROR_EXIT:
     close_uvc_device(&gUvcDeviceInfo);
+
+    memset(y_data, 0, 3840*2160);
+    memset(uv_data, 128, 3840*2160/2);
+    (*env)->CallVoidMethod(env, activity, methodID);
+
     return;
 }
 
