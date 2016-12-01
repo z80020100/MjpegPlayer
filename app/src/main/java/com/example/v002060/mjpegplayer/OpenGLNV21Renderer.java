@@ -188,7 +188,6 @@ public class OpenGLNV21Renderer implements GLSurfaceView.Renderer {
         GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_LUMINANCE_ALPHA,
                 mData.w / 2, mData.h / 2, 0, GLES20.GL_LUMINANCE_ALPHA,
                 GLES20.GL_UNSIGNED_BYTE, ByteBuffer.wrap(mData.uv));
-
     }
 
     @Override
@@ -196,7 +195,6 @@ public class OpenGLNV21Renderer implements GLSurfaceView.Renderer {
         //Log.i(TAG, "onDrawFrame");
 
         long start = System.nanoTime();
-
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mYTextureId);
         //GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
         //GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
@@ -257,7 +255,7 @@ public class OpenGLNV21Renderer implements GLSurfaceView.Renderer {
         return baos.toString();
     }
 
-    public void changeDataSoiurce(Data newData){
+    public void changeDataSource(Data newData){
         mData = newData;
     }
 }

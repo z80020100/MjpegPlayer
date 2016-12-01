@@ -12,18 +12,22 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 
 import java.io.IOException;
 import java.io.InputStream;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener{
+public class MainActivity extends AppCompatActivity{
     static {
         System.loadLibrary("MjpegPlayer");
     }
     public native void testSurface(Surface surface, byte[] buffer);
     public native void startPlay(Surface surface, byte[] buffer);
+    public native void startUvcPreview(String device, int width, int height);
+    public native void stopUvcPreview();
 
     private static final String TAG = "MainActivity";
     private String mSdPath;
@@ -87,11 +91,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         if(id == R.id.action_play){
-            //startPlay(surface);
+            new Thread(new Runnable() {
+                public void run() {
+                    startPlay(surface, mBuffer);
+                }
+            }).start();
             return true;
         }
 
+        if(id == R.id.uvc_preview){
+            new Thread(new Runnable() {
+                public void run() {
+                    startUvcPreview("/dev/video0", 3840, 2160);
+                }
+            }).start();
+            return true;
+        }
+
+        if(id == R.id.uvc_preview_stop){
+            stopUvcPreview();
+        }
+
         if(id == R.id.change_opengl){
+            // Remove the title bar from the window.
+            //this.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+            // Make the windows into full screen mode.
+            getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                    WindowManager.LayoutParams.FLAG_FULLSCREEN);
             setContentView(R.layout.main);
 
             // Create a OpenGL view.
@@ -99,19 +126,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             view.setEGLContextClientVersion(2);
 
             // Creating and attaching the renderer.
-            image = readDataFromAssets("test_4k.yuv420p");
+            //image = readDataFromAssets("test_4k.yuv420p");
             int w = 3840;
             int h = 2160;
-            byte[] data = new byte[w * h * 3 / 2];
-            testData = new Data(w, h, data);
+            //byte[] data = new byte[w * h * 3 / 2];
+            //testData = new Data(w, h, data);
             //renderer = new OpenGLNV21Renderer(this, testData);
             nativeRenderer = new NativeOpenGLNV21Renderer();
             view.setRenderer(nativeRenderer);
             view.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
 
 
-            greenButton = (Button)findViewById(R.id.button);
-            greenButton.setOnClickListener(this);
+            //greenButton = (Button)findViewById(R.id.button);
+            //greenButton.setOnClickListener(this);
+            //greenButton.setVisibility(View.INVISIBLE);
 
             //decodeCallback(data);
 
@@ -139,6 +167,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return null;
     }
 
+    /*
     @Override
     public void onClick(View v) {
         switch(v.getId()) {
@@ -157,12 +186,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 //view.requestRender();
                 Log.i("Button", "Green");
-                startPlay(surface, mBuffer);
+
+                new Thread(new Runnable() {
+                    public void run() {
+                        startPlay(surface, mBuffer);
+                    }
+                }).start();
+
                 break;
         }
     }
+    */
 
-    public void decodeCallback(byte[] frameData){
+    public void decodeCallback(){
         //Log.i(TAG, "frameData.length = " + Integer.toString(frameData.length));
 
         /*

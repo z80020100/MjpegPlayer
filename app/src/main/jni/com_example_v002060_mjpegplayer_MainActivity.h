@@ -23,6 +23,22 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_testSur
 JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPlay
   (JNIEnv *, jobject, jobject, jbyteArray);
 
+/*
+ * Class:     com_example_v002060_mjpegplayer_MainActivity
+ * Method:    startUvcPreview
+ * Signature: (Ljava/lang/String;II)V
+ */
+JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUvcPreview
+  (JNIEnv *, jobject, jstring, jint, jint);
+
+/*
+ * Class:     com_example_v002060_mjpegplayer_MainActivity
+ * Method:    stopUvcPreview
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_stopUvcPreview
+  (JNIEnv *, jobject);
+
 #ifdef __cplusplus
 }
 #endif

@@ -26,7 +26,8 @@ public class Data {
 		}
 
 		/*
-		for (int i = 0; i < uv.length; i++) { // for NV21
+		// for NV21
+		for (int i = 0; i < uv.length; i++) {
 			uv[i] = yuv[w * h + i];
 		}
 		*/

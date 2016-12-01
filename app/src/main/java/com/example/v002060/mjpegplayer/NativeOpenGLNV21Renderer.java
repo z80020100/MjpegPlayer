@@ -16,6 +16,8 @@ public class NativeOpenGLNV21Renderer implements GLSurfaceView.Renderer {
     public native void nativeOnSurfaceChanged(int width, int height);
     public native void nativeOnDrawFrame();
 
+    private static final String TAG = "NativeOpenGLNV21Renderer";
+
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         nativeOnSurfaceCreated(3840, 2160);

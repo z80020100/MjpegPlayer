@@ -14,6 +14,8 @@
 #include <libswscale/swscale.h>
 #include <libavutil/pixfmt.h>
 
+#include <uvc_host.h>
+
 #include <android/native_window.h>
 #include <android/log.h>
 #define LOG_TAG "mjpeg_player.c"
@@ -31,6 +33,7 @@ jobject mMainActivity;
 
 char *y_data;
 char *uv_data;
+int renderer_lock = 0;
 
 int fill_native_window(__uint16_t rgb565_value){
 
@@ -40,9 +43,61 @@ void release_native_window(){
 
 }
 
-
+UvcDeviceInfo gUvcDeviceInfo;
 // Testing for surface operation from native C code
 JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_testSurface(JNIEnv *env, jobject activity, jobject surface, jbyteArray buffer){
+
+
+
+    char uvc_device_name[16] = "/dev/video0";
+    init_uvc_device_info(&gUvcDeviceInfo, uvc_device_name, sizeof(uvc_device_name), 1920, 1080);
+    int ret = open_uvc_device(&gUvcDeviceInfo); // open and show the UVC device capability
+    if(ret < 0){
+        LOGE("UVC open failed...");
+    }
+    else{
+        LOGI("UVC open success");
+
+            ret = count_uvc_format_number(&gUvcDeviceInfo);
+            if(ret < 0){
+                LOGE("count_uvc_format_number");
+            }
+
+            ret = store_uvc_format(&gUvcDeviceInfo);
+            if(ret < 0){
+                LOGE("store_uvc_format");
+            }
+            //print_support_format(&gUvcDeviceInfo);
+
+            ret = set_uvc_format(&gUvcDeviceInfo, gUvcDeviceInfo.width, gUvcDeviceInfo.height, V4L2_PIX_FMT_MJPEG);
+            if(ret < 0){
+                LOGE("set_uvc_format");
+            }
+
+            ret = set_uvc_fps(&gUvcDeviceInfo, 1, 30);
+            if(ret < 0){
+                LOGE("set_uvc_fps");
+            }
+
+            ret = create_uvc_buf(&gUvcDeviceInfo);
+            if(ret < 0){
+                LOGE("create_uvc_buf");
+            }
+
+            ret = start_uvc_capture(&gUvcDeviceInfo);
+            if(ret < 0){
+                LOGE("start_uvc_capture");
+            }
+
+            ret = get_vuc_frame(&gUvcDeviceInfo);
+            if(ret < 0){
+                LOGE("get_vuc_frame");
+            }
+            else{
+                write_jpg_file(gUvcDeviceInfo.jpeg_buf, gUvcDeviceInfo.jpeg_buf_used_size, "/storage/sdcard0/UVC_CAPTURE.jpg");
+            }
+
+    }
 
     char* classname = "com/example/v002060/mjpegplayer/MainActivity";
     jclass dpclazz = (*env)->FindClass(env,classname);
@@ -269,7 +324,7 @@ void yuv420p_copy(AVFrame *pFrame, AVCodecContext *pCodecCtx, unsigned char *des
 
 void yuv420p_save(AVFrame *pFrame, AVCodecContext *pCodecCtx)
 {
-    FILE * pfout = fopen ("/storage/emulated/0/test.yuv420p" , "wb");
+    FILE * pfout = fopen ("/storage/sdcard0/test.yuv420p" , "wb");
     int i = 0;
 
     int width = pCodecCtx->width, height = pCodecCtx->height;
@@ -308,7 +363,7 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
         LOGE("Class: %s not found", classname);
         return;
     }
-    jmethodID methodID = (*env)->GetMethodID(env,dpclazz,"decodeCallback","([B)V");
+    jmethodID methodID = (*env)->GetMethodID(env,dpclazz,"decodeCallback","()V");
     if(methodID == 0){
         LOGE("Method: decodeCallback not found");
         return;
@@ -370,7 +425,8 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
 
     	//get C string from JNI jstring
     	//videoFileName = (char *)(*pEnv)->GetStringUTFChars(pEnv, pFileName, NULL);
-    	videoFileName = "/storage/emulated/legacy/MJPEG_Q2_4K_24FPS.mkv";
+    	//videoFileName = "/storage/emulated/legacy/MJPEG_Q2_4K_24FPS.mkv";
+    	videoFileName = "/storage/sdcard0/MJPEG_Q2_4K_24FPS.mkv";
         LOGI("Video file name: %s", videoFileName);
 
     	// Open video file
@@ -464,7 +520,7 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
 
                         uint8_t *src_data[4], *dst_data[4];
                         int src_linesize[4], dst_linesize[4];
-                        int src_w = pCodecCtx->width, src_h = pCodecCtx->height, dst_w = 1920, dst_h = 1080;
+                        int src_w = pCodecCtx->width, src_h = pCodecCtx->height, dst_w = 3840, dst_h = 2160;
                         enum AVPixelFormat src_pix_fmt = AV_PIX_FMT_YUV420P, dst_pix_fmt = AV_PIX_FMT_RGB565LE;//AV_PIX_FMT_RGB565LE
                         const char *dst_filename = NULL;
                         FILE *dst_file;
@@ -545,14 +601,15 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
                                 //(*env)->ReleasePrimitiveArrayCritical(env, jbuffer, yuvFrameData, JNI_ABORT);
                                 //memcpy(y_data, yuvFrameData, 3840*2160);
                                 //memcpy(y_data, yuvFrameData+3840*2160, 3840*2160/2);
-                                nv21_copy(pFrame, pCodecCtx, y_data, uv_data);
+                                //LOGI("renderer_lock: %p", &renderer_lock);
 
-                                (*env)->CallVoidMethod(env, activity, methodID, frameByteArray);
+                                nv21_copy(pFrame, pCodecCtx, y_data, uv_data);
+                                (*env)->CallVoidMethod(env, activity, methodID);
 
 
 
                             /* write scaled image to file */
-                            if(i == 120){
+                            if(0){
                                 dst_filename = "/storage/emulated/0/test.nv21";
                                 dst_file = fopen(dst_filename, "wb");
                                 if (!dst_file) {
@@ -639,7 +696,7 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
 
             if((fps_count_cur_time_us - fps_count_start_time_us) >= fps_show_interval*1000000){
                 //printf("UVC: %s, Name: %s, Resolution: %d x %d, FPS = %d\n", uvc_device_info->uvc_dev_path, uvc_device_info->cap.card, uvc_device_info->set_format.fmt.pix.width, uvc_device_info->set_format.fmt.pix.height, uvc_device_info->fps_count/uvc_device_info->fps_show_interval);
-                LOGI("FPS = %d", fps_count/fps_show_interval);
+                LOGI("Decode FPS = %d", fps_count/fps_show_interval);
                 fps_count = 0;
             }
 
@@ -681,4 +738,190 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
 
     free(yuvFrameData);
         LOGI("Exit: naMain");
+}
+
+int uvc_preview_flag = 0;
+
+JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUvcPreview(JNIEnv *env, jobject activity, jstring jDevice, jint width, jint height){
+
+    // Set UVC Device
+    char *uvc_device_name = (*env)->GetStringUTFChars(env, jDevice, 0);
+    init_uvc_device_info(&gUvcDeviceInfo, uvc_device_name, strlen(uvc_device_name), width, height);
+    (*env)->ReleaseStringUTFChars(env, jDevice, uvc_device_name);
+    int ret = open_uvc_device(&gUvcDeviceInfo); // open and show the UVC device capability
+    if(ret < 0){
+        LOGE("UVC open failed...");
+        goto ERROR_EXIT;
+    }
+
+    ret = count_uvc_format_number(&gUvcDeviceInfo);
+    if(ret < 0){
+        LOGE("count_uvc_format_number");
+        goto ERROR_EXIT;
+    }
+
+    ret = store_uvc_format(&gUvcDeviceInfo);
+    if(ret < 0){
+        LOGE("store_uvc_format");
+        goto ERROR_EXIT;
+    }
+    print_support_format(&gUvcDeviceInfo);
+
+    ret = set_uvc_format(&gUvcDeviceInfo, gUvcDeviceInfo.width, gUvcDeviceInfo.height, V4L2_PIX_FMT_MJPEG);
+    if(ret < 0){
+        LOGE("set_uvc_format");
+        goto ERROR_EXIT;
+    }
+
+    ret = set_uvc_fps(&gUvcDeviceInfo, 1, 30);
+    if(ret < 0){
+        LOGE("set_uvc_fps");
+        goto ERROR_EXIT;
+    }
+
+    ret = create_uvc_buf(&gUvcDeviceInfo);
+    if(ret < 0){
+        LOGE("create_uvc_buf");
+        goto ERROR_EXIT;
+    }
+
+    ret = start_uvc_capture(&gUvcDeviceInfo);
+    if(ret < 0){
+        LOGE("start_uvc_capture");
+        goto ERROR_EXIT;
+    }
+
+    ret = get_vuc_frame(&gUvcDeviceInfo);
+    if(ret < 0){
+        LOGE("get_vuc_frame");
+        goto ERROR_EXIT;
+    }
+
+    write_jpg_file(gUvcDeviceInfo.jpeg_buf, gUvcDeviceInfo.jpeg_buf_used_size, "/storage/sdcard0/UVC_CAPTURE.jpg");
+    LOGI("Save a frame to file");
+
+    // Set JNI frame update callback function
+    char* classname = "com/example/v002060/mjpegplayer/MainActivity";
+    jclass dpclazz = (*env)->FindClass(env, classname);
+    if(dpclazz == 0){
+        LOGE("Class: %s not found", classname);
+        return;
+    }
+    jmethodID methodID = (*env)->GetMethodID(env, dpclazz, "decodeCallback", "()V");
+    if(methodID == 0){
+        LOGE("Method: decodeCallback not found");
+        return;
+    }
+
+    // Set FFmpeg Decoder
+    AVCodecContext *pCodecCtx = NULL;
+    AVCodec        *pCodec = NULL;
+    AVFrame        *pFrame = NULL;
+    AVPacket        packet;
+    int frameFinished;
+
+    // Register all formats and codecs
+    av_register_all();
+    LOGI("Register all formats and codecs");
+
+    pCodec = avcodec_find_decoder(AV_CODEC_ID_MJPEG);
+    pCodecCtx = avcodec_alloc_context3(pCodec);
+    avcodec_get_context_defaults3(pCodecCtx, pCodec);
+    pCodecCtx->thread_count = 4;
+    pCodecCtx->thread_type = FF_THREAD_FRAME;
+
+    if(avcodec_open2(pCodecCtx, pCodec, NULL) < 0){
+        LOGE("Could not open codec");
+        return;
+    }
+    LOGI("Open codec");
+
+    // Allocate video frame
+    pFrame = av_frame_alloc();
+    if(pFrame == NULL){
+        LOGE("Could not allocate video frame");
+        return;
+    }
+    LOGI("Allocate video frame");
+    uvc_preview_flag = 1;
+
+    int i = 0;
+    while(uvc_preview_flag){
+        ret = get_vuc_frame(&gUvcDeviceInfo);
+        if(ret < 0){
+            LOGE("get_vuc_frame");
+            goto ERROR_EXIT;
+        }
+
+        packet.data = gUvcDeviceInfo.jpeg_buf;
+        packet.size = gUvcDeviceInfo.jpeg_buf_used_size;
+
+        avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished, &packet);
+    	// Did we get a video frame?
+    	if(frameFinished) {
+            nv21_copy(pFrame, pCodecCtx, y_data, uv_data);
+            (*env)->CallVoidMethod(env, activity, methodID);
+
+            if(i == 0){
+                LOGI("pFrame->format = %d", pFrame->format);
+
+                //yuv420p_save(pFrame, pCodecCtx);
+                 uint8_t *src_data[4], *dst_data[4];
+                int src_linesize[4], dst_linesize[4];
+                int src_w = pCodecCtx->width, src_h = pCodecCtx->height, dst_w = 3840, dst_h = 2160;
+                enum AVPixelFormat src_pix_fmt = AV_PIX_FMT_YUV422P, dst_pix_fmt = AV_PIX_FMT_NV21;//AV_PIX_FMT_RGB565LE, AV_PIX_FMT_NV21
+                const char *dst_filename = NULL;
+                FILE *dst_file;
+                int dst_bufsize;
+                struct SwsContext *sws_ctx;
+                int ret;
+                unsigned short *test_value;
+
+
+                /* create scaling context */
+                sws_ctx = sws_getContext(src_w, src_h, src_pix_fmt,
+                    dst_w, dst_h, dst_pix_fmt,
+                    SWS_BILINEAR, NULL, NULL, NULL);
+                    if (!sws_ctx) {
+                        LOGE(
+                            "Impossible to create scale context for the conversion, fmt:%s s:%dx%d -> fmt:%s s:%dx%d",
+                            av_get_pix_fmt_name(src_pix_fmt), src_w, src_h,
+                            av_get_pix_fmt_name(dst_pix_fmt), dst_w, dst_h);
+                        ret = AVERROR(EINVAL);
+                    }
+                    if ((ret = av_image_alloc(dst_data, dst_linesize, dst_w, dst_h, dst_pix_fmt, 1)) < 0) {
+                        LOGE("Could not allocate destination image");
+                    }
+                    dst_bufsize = ret;
+                    LOGI("dst_bufsize = %d", dst_bufsize);
+
+                    sws_scale(sws_ctx, (uint8_t const * const *)pFrame->data,
+                        pFrame->linesize, 0, src_h, dst_data, dst_linesize);
+
+                    dst_file = fopen("/storage/sdcard0/test.nv21", "wb");
+                    fwrite(dst_data[0], 1, dst_bufsize, dst_file);
+                    fclose(dst_file);
+            }
+            i++;
+    	}
+    }
+
+    memset(y_data, 0, 3840*2160);
+    memset(uv_data, 128, 3840*2160/2);
+    (*env)->CallVoidMethod(env, activity, methodID);
+
+    // Free the YUV frame
+    free(pFrame);
+
+    // Close the codec
+    avcodec_close(pCodecCtx);
+
+
+ERROR_EXIT:
+    close_uvc_device(&gUvcDeviceInfo);
+    return;
+}
+
+JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_stopUvcPreview(JNIEnv *env, jobject activity){
+    uvc_preview_flag = 0;
 }
