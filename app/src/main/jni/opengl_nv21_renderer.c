@@ -217,6 +217,7 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_NativeOpenGLNV21Rend
 }
 
 JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_NativeOpenGLNV21Renderer_nativeOnDrawFrame(JNIEnv *env, jobject renderer){
+        renderer_lock = 1;
 
         //gettimeofday(&tv,NULL);
         //fps_count_start_time_us = 1000000 * tv.tv_sec + tv.tv_usec;
@@ -268,6 +269,8 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_NativeOpenGLNV21Rend
         glDisableVertexAttribArray(PositionHandler);
         glDisableVertexAttribArray(TextureCoordinateHandler);
         glBindTexture(GL_TEXTURE_2D, 0);
+
+        renderer_lock = 0;
 
         gettimeofday(&tv, NULL);
         fps_count_cur_time_us = 1000000 * tv.tv_sec + tv.tv_usec;

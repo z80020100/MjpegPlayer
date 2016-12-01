@@ -232,6 +232,48 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_testSur
     ANativeWindow_release(mANativeWindow);
 }
 
+void yuv422p_to_nv21_copy(AVFrame *pFrame, AVCodecContext *pCodecCtx, unsigned char *y_dest, unsigned char *uv_dest){
+    //FILE * pfout = fopen ("/storage/emulated/0/test_copy.yuv420p" , "wb");
+    int i = 0;
+
+    int width = pCodecCtx->width, height = pCodecCtx->height;
+    int height_half = height / 2, width_half = width / 2;
+    int y_wrap = pFrame->linesize[0];
+    int u_wrap = pFrame->linesize[1];
+    int v_wrap = pFrame->linesize[2];
+
+    unsigned char *y_buf = pFrame->data[0];
+    unsigned char *u_buf = pFrame->data[1];
+    unsigned char *v_buf = pFrame->data[2];
+
+    int dest_offset = 0;
+    //save y
+    for (i = 0; i < height; i++){
+        //fwrite(y_buf + i * y_wrap, 1, width, pfout);
+        memcpy(y_dest + dest_offset, y_buf + i * y_wrap, width);
+        dest_offset = dest_offset + width;
+    }
+
+    // change to NV21 arrangement
+    int j = 0;
+    dest_offset = 0;
+    for (i = 0; i < height; i = i + 2){
+        for(j = 0; j < width_half; j++){
+            *(uv_dest + dest_offset) = *(v_buf + i * v_wrap + j);
+            dest_offset++;
+            *(uv_dest + dest_offset) = *(u_buf + i * u_wrap + j);
+            dest_offset++;
+        }
+    }
+
+    //LOGI("Copy %d bytes data", dest_offset);
+    //fwrite(dest, 1, dest_offset, pfout);
+
+
+    //fflush(pfout);
+    //fclose(pfout);
+}
+
 void nv21_copy(AVFrame *pFrame, AVCodecContext *pCodecCtx, unsigned char *y_dest, unsigned char *uv_dest){
     //FILE * pfout = fopen ("/storage/emulated/0/test_copy.yuv420p" , "wb");
     int i = 0;
@@ -602,9 +644,11 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
                                 //memcpy(y_data, yuvFrameData, 3840*2160);
                                 //memcpy(y_data, yuvFrameData+3840*2160, 3840*2160/2);
                                 //LOGI("renderer_lock: %p", &renderer_lock);
+                                if(renderer_lock == 0){
+                                    nv21_copy(pFrame, pCodecCtx, y_data, uv_data);
+                                    (*env)->CallVoidMethod(env, activity, methodID);
+                                }
 
-                                nv21_copy(pFrame, pCodecCtx, y_data, uv_data);
-                                (*env)->CallVoidMethod(env, activity, methodID);
 
 
 
@@ -741,6 +785,7 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startPl
 }
 
 int uvc_preview_flag = 0;
+int update_update_flag = 0;
 
 JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUvcPreview(JNIEnv *env, jobject activity, jstring jDevice, jint width, jint height){
 
@@ -829,6 +874,8 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUv
     avcodec_get_context_defaults3(pCodecCtx, pCodec);
     pCodecCtx->thread_count = 4;
     pCodecCtx->thread_type = FF_THREAD_FRAME;
+    pCodecCtx->width = 3840;
+    pCodecCtx->height = 2160;
 
     if(avcodec_open2(pCodecCtx, pCodec, NULL) < 0){
         LOGE("Could not open codec");
@@ -845,43 +892,24 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUv
     LOGI("Allocate video frame");
     uvc_preview_flag = 1;
 
-    int i = 0;
-    while(uvc_preview_flag){
-        ret = get_vuc_frame(&gUvcDeviceInfo);
-        if(ret < 0){
-            LOGE("get_vuc_frame");
-            goto ERROR_EXIT;
-        }
-
-        packet.data = gUvcDeviceInfo.jpeg_buf;
-        packet.size = gUvcDeviceInfo.jpeg_buf_used_size;
-
-        avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished, &packet);
-    	// Did we get a video frame?
-    	if(frameFinished) {
-            nv21_copy(pFrame, pCodecCtx, y_data, uv_data);
-            (*env)->CallVoidMethod(env, activity, methodID);
-
-            if(i == 0){
-                LOGI("pFrame->format = %d", pFrame->format);
-
-                //yuv420p_save(pFrame, pCodecCtx);
-                 uint8_t *src_data[4], *dst_data[4];
+    // Set FFmpeg scaler
+    int use_ffmpeg_scaler = 0;
+                uint8_t *src_data[4], *dst_data[4];
                 int src_linesize[4], dst_linesize[4];
-                int src_w = pCodecCtx->width, src_h = pCodecCtx->height, dst_w = 3840, dst_h = 2160;
-                enum AVPixelFormat src_pix_fmt = AV_PIX_FMT_YUV422P, dst_pix_fmt = AV_PIX_FMT_NV21;//AV_PIX_FMT_RGB565LE, AV_PIX_FMT_NV21
+                int src_w = 3840, src_h = 2160, dst_w = 3840, dst_h = 2160;
+                enum AVPixelFormat src_pix_fmt = AV_PIX_FMT_YUV422P, dst_pix_fmt = AV_PIX_FMT_NV21; // AV_PIX_FMT_RGB565LE, AV_PIX_FMT_NV21
                 const char *dst_filename = NULL;
                 FILE *dst_file;
                 int dst_bufsize;
                 struct SwsContext *sws_ctx;
-                int ret;
+                //int ret;
                 unsigned short *test_value;
 
 
                 /* create scaling context */
                 sws_ctx = sws_getContext(src_w, src_h, src_pix_fmt,
                     dst_w, dst_h, dst_pix_fmt,
-                    SWS_BILINEAR, NULL, NULL, NULL);
+                    SWS_FAST_BILINEAR, NULL, NULL, NULL);
                     if (!sws_ctx) {
                         LOGE(
                             "Impossible to create scale context for the conversion, fmt:%s s:%dx%d -> fmt:%s s:%dx%d",
@@ -895,12 +923,54 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUv
                     dst_bufsize = ret;
                     LOGI("dst_bufsize = %d", dst_bufsize);
 
+
+
+
+
+    int i = 0;
+    while(uvc_preview_flag){
+        ret = get_vuc_frame(&gUvcDeviceInfo);
+        if(ret < 0){
+            LOGE("get_vuc_frame");
+            goto ERROR_EXIT;
+        }
+
+
+        packet.data = gUvcDeviceInfo.jpeg_buf;
+        packet.size = gUvcDeviceInfo.jpeg_buf_used_size;
+
+        //LOGI("pCodecCtx->width = %d, pCodecCtx->height = %d", pCodecCtx->width, pCodecCtx->height);
+
+        avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished, &packet);
+    	// Did we get a video frame?
+    	if(frameFinished) {
+
+            if(use_ffmpeg_scaler){
+                //LOGI("pFrame->format = %d", pFrame->format);
+
+
+
                     sws_scale(sws_ctx, (uint8_t const * const *)pFrame->data,
                         pFrame->linesize, 0, src_h, dst_data, dst_linesize);
 
-                    dst_file = fopen("/storage/sdcard0/test.nv21", "wb");
-                    fwrite(dst_data[0], 1, dst_bufsize, dst_file);
-                    fclose(dst_file);
+                    //dst_file = fopen("/storage/sdcard0/test.nv21", "wb");
+                    //fwrite(dst_data[0], 1, dst_bufsize, dst_file);
+                    //fclose(dst_file);
+
+                    memcpy(y_data, dst_data[0], 3840*2160);
+                    memcpy(uv_data, (dst_data[0])+(3840*2160), 3840*2160/2);
+                    (*env)->CallVoidMethod(env, activity, methodID);
+            }
+            else{
+                //nv21_copy(pFrame, pCodecCtx, y_data, uv_data);
+                if(renderer_lock == 0){
+                    yuv422p_to_nv21_copy(pFrame, pCodecCtx, y_data, uv_data);
+                    (*env)->CallVoidMethod(env, activity, methodID);
+                }
+                else{
+                    //LOGE("Drop frame");
+                }
+
             }
             i++;
     	}

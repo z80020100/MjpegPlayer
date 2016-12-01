@@ -349,7 +349,7 @@ int set_uvc_format(UvcDeviceInfo *uvc_device_info, int width, int height, int fo
             
         ret = ioctl(uvc_device_info->uvc_dev_fd, VIDIOC_S_FMT, &uvc_device_info->set_format);
         if(ret < 0){
-            printf("Query %s VIDIOC_S_FMT fail!\n", uvc_device_info->uvc_dev_path);
+            LOGE("Query %s VIDIOC_S_FMT fail!\n", uvc_device_info->uvc_dev_path);
             perror("Error");
         }
         else{
@@ -358,32 +358,32 @@ int set_uvc_format(UvcDeviceInfo *uvc_device_info, int width, int height, int fo
 
             /* Check format */
             if((uvc_device_info->set_format.fmt.pix.width != width) || (uvc_device_info->set_format.fmt.pix.height != height)){
-                printf("Driver: reset width = %d, height = %d\n", uvc_device_info->set_format.fmt.pix.width, uvc_device_info->set_format.fmt.pix.height);
+                LOGI("Driver: reset width = %d, height = %d\n", uvc_device_info->set_format.fmt.pix.width, uvc_device_info->set_format.fmt.pix.height);
             }
             else{
-                printf("Set width = %d, height = %d\n", uvc_device_info->set_format.fmt.pix.width, uvc_device_info->set_format.fmt.pix.height);
+                LOGI("Set width = %d, height = %d\n", uvc_device_info->set_format.fmt.pix.width, uvc_device_info->set_format.fmt.pix.height);
             }
                 
-            if(uvc_device_info->set_format.fmt.pix.pixelformat != V4L2_PIX_FMT_MJPEG){
+            if(uvc_device_info->set_format.fmt.pix.pixelformat != format){
                 if(uvc_device_info->set_format.fmt.pix.pixelformat == V4L2_PIX_FMT_MJPEG){
-                    printf("Not support YUYV\n");
+                    LOGE("Not support YUYV\n");
                 }
                 else if(uvc_device_info->set_format.fmt.pix.pixelformat == V4L2_PIX_FMT_YUYV){
-                    printf("Not support MJPEG\n");
+                    LOGE("Not support MJPEG\n");
                 }
             }
             else{
                 if(uvc_device_info->set_format.fmt.pix.pixelformat == V4L2_PIX_FMT_MJPEG){
-                    printf("Set format = MJPEG\n");
+                    LOGI("Set format = MJPEG\n");
                 }
                 else if(uvc_device_info->set_format.fmt.pix.pixelformat == V4L2_PIX_FMT_YUYV){
-                    printf("Set format = YUYV\n");
+                    LOGI("Set format = YUYV\n");
                 }
             }
         }
     }
     else{
-        printf("Error: set format fail, UVC device is on stage %d\n", uvc_device_info->stage);
+        LOGE("Error: set format fail, UVC device is on stage %d\n", uvc_device_info->stage);
     }
 
     return status;
@@ -401,7 +401,7 @@ int set_uvc_fps(UvcDeviceInfo *uvc_device_info, int frame_interval_numerator, in
 		
 		ret = ioctl(uvc_device_info->uvc_dev_fd, VIDIOC_G_PARM, uvc_device_info->set_fps);
 		if(ret < 0){
-			printf("Query %s VIDIOC_G_PARM (frame rate setting) fail!\n", uvc_device_info->uvc_dev_path);
+			LOGE("Query %s VIDIOC_G_PARM (frame rate setting) fail!\n", uvc_device_info->uvc_dev_path);
 		}
 		else{
             status = 0;
@@ -411,15 +411,15 @@ int set_uvc_fps(UvcDeviceInfo *uvc_device_info, int frame_interval_numerator, in
 			float frame_rate = (float)uvc_device_info->set_fps->parm.capture.timeperframe.denominator/uvc_device_info->set_fps->parm.capture.timeperframe.numerator;
 			if((uvc_device_info->set_fps->parm.capture.timeperframe.numerator != frame_interval_numerator) || (uvc_device_info->set_fps->parm.capture.timeperframe.denominator != frame_interval_denominator)){
 				frame_rate = (float)uvc_device_info->set_fps->parm.capture.timeperframe.denominator/uvc_device_info->set_fps->parm.capture.timeperframe.numerator;
-				printf("Driver: reset frame rate = %.3f\n", frame_rate);
+				LOGI("Driver: reset frame rate = %.3f\n", frame_rate);
 			}
 			else{
-				printf("Set frame rate = %.3f\n", frame_rate);
+				LOGI("Set frame rate = %.3f\n", frame_rate);
 			}
 		}
     }
     else{
-        printf("Error: set format fail, UVC device is on stage %d\n", uvc_device_info->stage);
+        LOGE("Error: set format fail, UVC device is on stage %d\n", uvc_device_info->stage);
     }
 
     return status;
@@ -558,7 +558,7 @@ int get_vuc_frame(UvcDeviceInfo *uvc_device_info){
         
             ret = ioctl(uvc_device_info->uvc_dev_fd, VIDIOC_DQBUF, &uvc_device_info->buf);
             if(ret < 0){
-                printf("Query %s VIDIOC_DQBUF (dequeue buffer) fail!\n", uvc_device_info->uvc_dev_path);
+                LOGE("Query %s VIDIOC_DQBUF (dequeue buffer) fail!", uvc_device_info->uvc_dev_path);
                 return status;
             }
             
@@ -572,7 +572,7 @@ int get_vuc_frame(UvcDeviceInfo *uvc_device_info){
         /* Requeue buffer */
         ret = ioctl(uvc_device_info->uvc_dev_fd, VIDIOC_QBUF, &uvc_device_info->buf);
         if(ret < 0) {
-            printf("Query %s VIDIOC_QBUF (requeue buffer) fail!\n", uvc_device_info->uvc_dev_path);
+            LOGE("Query %s VIDIOC_QBUF (requeue buffer) fail!", uvc_device_info->uvc_dev_path);
             return status;
         }
         status = 0;
@@ -594,7 +594,7 @@ int get_vuc_frame(UvcDeviceInfo *uvc_device_info){
 
     }
     else{
-        LOGE("Error: get frame fail, UVC device is on stage %d\n", uvc_device_info->stage);
+        LOGE("Error: get frame fail, UVC device is on stage %d", uvc_device_info->stage);
     }
 
     return status;
