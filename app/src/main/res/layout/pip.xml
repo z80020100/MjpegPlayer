@@ -7,14 +7,34 @@
     android:background="#CCCCCC">
 <!--android:gravity="center_vertical"-->
 
-    <android.opengl.GLSurfaceView
-        android:id="@+id/PipGLSurfaceView"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
 
-    <SurfaceView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/PipRtspView" />
+        <android.opengl.GLSurfaceView
+            android:id="@+id/PipGLSurfaceView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <android.opengl.GLSurfaceView
+            android:id="@+id/PlayGLSurfaceView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <SurfaceView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/PipRtspView" />
+
+    </LinearLayout>
+
 
 </LinearLayout>

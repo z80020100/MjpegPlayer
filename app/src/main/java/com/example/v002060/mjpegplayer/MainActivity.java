@@ -1,6 +1,8 @@
 package com.example.v002060.mjpegplayer;
 
+import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.media.MediaPlayer;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.os.Environment;
@@ -56,6 +58,12 @@ public class MainActivity extends AppCompatActivity{
 
     public byte[] mBuffer;
 
+    /* For Player */
+    private GLSurfaceView mPlayerView;
+    private VideoRender mRenderer;
+    private MediaPlayer mMediaPlayer;
+    protected Resources mResources;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,6 +77,16 @@ public class MainActivity extends AppCompatActivity{
         surface = surfaceHolder.getSurface();
 
         mBuffer = new byte[3840*2160*3/2];
+
+        mResources = getResources();
+        mMediaPlayer = new MediaPlayer();
+
+        try {
+            Log.i(TAG, Environment.getExternalStorageDirectory().getPath() + "/demo.mp4");
+            mMediaPlayer.setDataSource(Environment.getExternalStorageDirectory().getPath() + "/demo.mp4");
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage(), e);
+        }
     }
 
     @Override
@@ -104,11 +122,17 @@ public class MainActivity extends AppCompatActivity{
         }
 
         if(id == R.id.action_play){
+
+            /*
             new Thread(new Runnable() {
                 public void run() {
-                    startPlay(surface, mBuffer);
+                    startPlay(surface, mBuffer); // Play MJPEG, decode by FFmpeg, need Surface
                 }
             }).start();
+            */
+            mMediaPlayer.setLooping(true);
+            mMediaPlayer.start(); // Play MP4, decode by HW, need GLSurface
+
             return true;
         }
 
@@ -205,6 +229,15 @@ public class MainActivity extends AppCompatActivity{
             lp.width = pipWidth;
             lp.height = pipHeight;
             videoSurfaceView.setLayoutParams(lp);
+
+            mPlayerView = (GLSurfaceView) findViewById(R.id.PlayGLSurfaceView);
+            mPlayerView.setEGLContextClientVersion(2);
+            lp = mPlayerView.getLayoutParams();
+            lp.width = pipWidth;
+            lp.height = pipHeight;
+            mPlayerView.setLayoutParams(lp);
+            mRenderer = new VideoRender(mMediaPlayer);
+            mPlayerView.setRenderer(mRenderer);
 
             return true;
         }
