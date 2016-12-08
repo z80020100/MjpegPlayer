@@ -10,29 +10,61 @@
     <LinearLayout
         android:orientation="vertical"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_height="match_parent">
 
         <android.opengl.GLSurfaceView
             android:id="@+id/PipGLSurfaceView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
-        <android.opengl.GLSurfaceView
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="UVC-in Streaming"
+            android:id="@+id/UvcTextView"
+            android:gravity="center"
+            android:textColor="#0000FF"
+            android:textSize="60sp"/>
+
+        <!--android.opengl.GLSurfaceView
             android:id="@+id/PlayGLSurfaceView"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content" /-->
 
     </LinearLayout>
 
     <LinearLayout
         android:orientation="vertical"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_height="match_parent">
 
         <SurfaceView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/PipRtspView" />
+
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/IpEditText"
+            android:hint="192.168.0.130"
+            android:gravity="center"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="Wi-Fi RTSP Streaming"
+            android:id="@+id/RtspTextView"
+            android:gravity="center"
+            android:textColor="#0000FF"
+            android:textSize="60sp" />
+
+        <!--android.opengl.GLSurfaceView
+            android:id="@+id/RtspGLSurfaceView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" /-->
 
     </LinearLayout>
 

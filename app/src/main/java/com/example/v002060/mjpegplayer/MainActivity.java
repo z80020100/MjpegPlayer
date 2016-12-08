@@ -16,6 +16,7 @@ import android.view.SurfaceView;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 
 import java.io.IOException;
@@ -63,6 +64,11 @@ public class MainActivity extends AppCompatActivity{
     private VideoRender mRenderer;
     private MediaPlayer mMediaPlayer;
     protected Resources mResources;
+
+    private GLSurfaceView mRtspView;
+    private MediaCodecRender mMediaCodecRender;
+
+    private EditText mDocCamIpExv = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -230,6 +236,10 @@ public class MainActivity extends AppCompatActivity{
             lp.height = pipHeight;
             videoSurfaceView.setLayoutParams(lp);
 
+            mDocCamIpExv = (EditText) findViewById(R.id.IpEditText);
+            mDocCamIpExv.setText("192.168.0.102");
+
+            /*
             mPlayerView = (GLSurfaceView) findViewById(R.id.PlayGLSurfaceView);
             mPlayerView.setEGLContextClientVersion(2);
             lp = mPlayerView.getLayoutParams();
@@ -238,13 +248,33 @@ public class MainActivity extends AppCompatActivity{
             mPlayerView.setLayoutParams(lp);
             mRenderer = new VideoRender(mMediaPlayer);
             mPlayerView.setRenderer(mRenderer);
+            */
+
+            /*
+            mRtspView = (GLSurfaceView) findViewById(R.id.RtspGLSurfaceView);
+            mRtspView.setEGLContextClientVersion(2);
+            lp = mRtspView.getLayoutParams();
+            lp.width = pipWidth;
+            lp.height = pipHeight;
+            mRtspView.setLayoutParams(lp);
+            mMediaCodecRender = new MediaCodecRender();
+            mRtspView.setRenderer(mRenderer);
+            */
 
             return true;
         }
 
         if(id == R.id.play_rtsp){
-            String host = "rtsp://192.168.0.130:8557/PSIA/Streaming/channels/2?videoCodecType=H.264";
-            startRtspClient(host);
+            if(mDocCamIpExv == null){
+                //String host = "rtsp://192.168.0.130:8557/PSIA/Streaming/channels/2?videoCodecType=H.264";
+                //startRtspClient(host);
+            }
+            else{
+                String host = "rtsp://" + mDocCamIpExv.getText().toString() + ":8557/PSIA/Streaming/channels/2?videoCodecType=H.264";
+                Log.i(TAG, "Play URL = " + host);
+                startRtspClient(host);
+            }
+
             return true;
         }
 
