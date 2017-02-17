@@ -746,7 +746,7 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUv
     if (dev == NULL)
     {
         LOGE("Open %s, failed", device);
-        return -1;
+        return;
     }
 
     LOGI("Open %s success", device);
@@ -767,7 +767,7 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUv
 
     while (uvc_device_flag) {
         usleep(1000);
-        LOGD("Loop in uvc_device.c");
+        //LOGD("Loop in uvc_device.c");
 
     	efds = fds;
     	wfds = fds;
@@ -782,5 +782,4 @@ JNIEXPORT void JNICALL Java_com_example_v002060_mjpegplayer_MainActivity_startUv
     }
 
     uvc_close(dev);
-    return 0;
 }
