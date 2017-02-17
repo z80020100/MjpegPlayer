@@ -9,7 +9,8 @@
 #include <time.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
-#include <linux/videodev2.h> // We add some define to this header
+#include <linux/videodev2.h>
+#include "videodev2_complmt.h" // for Android API 19
 
 #define NUMBER_OF_BUFFERS 4
 #define FPS_SHOW_INTERVAL 3
